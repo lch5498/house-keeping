@@ -542,7 +542,7 @@ export async function createScrapPost(
     familyId,
     actorUserId: userId,
     type: 'scrap',
-    title: activityTitle(content),
+    title: activityTitle(content, post.link_title),
     detail: '스크랩 글을 등록했어요.',
     target: { type: 'scrap_post', id: post.id, parentId: channelId },
   });
@@ -596,7 +596,7 @@ export async function updateScrapPost(
     familyId,
     actorUserId: userId,
     type: 'scrap',
-    title: activityTitle(content),
+    title: activityTitle(content, updatedPost.link_title),
     detail: '스크랩 글을 수정했어요.',
     target: { type: 'scrap_post', id: updatedPost.id, parentId: channelId },
   });
@@ -781,14 +781,19 @@ export async function deleteScrapPost(
     familyId,
     actorUserId: userId,
     type: 'scrap',
-    title: activityTitle(post.content),
+    title: activityTitle(post.content, post.link_title),
     detail: '스크랩 글을 삭제했어요.',
   });
 }
 
-function activityTitle(value: string) {
-  const normalized = value.trim().replace(/\s+/g, ' ');
-  return normalized.length <= 60 ? normalized : '${normalized.substring(0, 57)}...';
+function activityTitle(value: string, linkTitle?: string | null) {
+  const previewTitle = linkTitle?.trim();
+
+  if (previewTitle) {
+    return previewTitle;
+  }
+
+  return value.trim().split(/\r?\n/, 1)[0]?.trim() || '스크랩';
 }
 
 export async function deleteScrapComment(

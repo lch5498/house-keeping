@@ -27,6 +27,12 @@ type GroupActivityRow = {
   actor: { nickname: string } | { nickname: string }[] | null;
 };
 
+type ScrapPostPreviewRow = {
+  id: string;
+  content: string;
+  link_title: string | null;
+};
+
 export type GroupActivityItem = {
   id: string;
   actorUserId: string | null;
@@ -138,7 +144,41 @@ export async function listGroupActivities(
     throw new HttpError(500, { error: 'group_activity_log_fetch_failed' });
   }
 
-  return (data ?? []).map((row) => toGroupActivityItem(row));
+  const rows = (data ?? []) as GroupActivityRow[];
+  const scrapPostIds = rows
+    .filter(
+      (activity) =>
+        activity.activity_type === 'scrap' &&
+        activity.target_type === 'scrap_post' &&
+        activity.target_id !== null &&
+        (activity.detail === '스크랩 글을 등록했어요.' ||
+          activity.detail === '스크랩 글을 수정했어요.'),
+    )
+    .map((activity) => activity.target_id as string);
+  const scrapTitleByPostId = new Map<string, string>();
+
+  if (scrapPostIds.length > 0) {
+    const { data: posts, error: postsError } = await supabase
+      .from('scrap_posts')
+      .select('id, content, link_title')
+      .eq('family_id', familyId)
+      .in('id', [...new Set(scrapPostIds)]);
+
+    if (postsError) {
+      throw new HttpError(500, { error: 'scrap_activity_title_fetch_failed' });
+    }
+
+    for (const post of (posts ?? []) as ScrapPostPreviewRow[]) {
+      scrapTitleByPostId.set(
+        post.id,
+        scrapActivityTitle(post.content, post.link_title),
+      );
+    }
+  }
+
+  return rows.map((row) =>
+    toGroupActivityItem(row, scrapTitleByPostId.get(row.target_id ?? '')),
+  );
 }
 
 function activityCutoff() {
@@ -147,15 +187,17 @@ function activityCutoff() {
   ).toISOString();
 }
 
-function toGroupActivityItem(row: unknown): GroupActivityItem {
-  const activity = row as GroupActivityRow;
+function toGroupActivityItem(
+  activity: GroupActivityRow,
+  titleOverride?: string,
+): GroupActivityItem {
   const actor = Array.isArray(activity.actor) ? activity.actor[0] : activity.actor;
 
   return {
     id: activity.id,
     actorUserId: activity.actor_user_id,
     type: activity.activity_type,
-    title: activity.title,
+    title: titleOverride ?? activity.title,
     detail: activity.detail,
     actorNickname: actor?.nickname ?? null,
     createdAt: activity.created_at,
@@ -169,4 +211,14 @@ function toGroupActivityItem(row: unknown): GroupActivityItem {
           }
         : null,
   };
+}
+
+function scrapActivityTitle(value: string, linkTitle: string | null) {
+  const previewTitle = linkTitle?.trim();
+
+  if (previewTitle) {
+    return previewTitle;
+  }
+
+  return value.trim().split(/\r?\n/, 1)[0]?.trim() || '스크랩';
 }
