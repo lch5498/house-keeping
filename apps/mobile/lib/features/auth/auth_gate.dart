@@ -420,6 +420,7 @@ class _AuthGateState extends State<AuthGate> {
       throw const ApiConnectionException('로그인 정보가 없습니다.');
     }
 
+    final navigator = Navigator.of(context, rootNavigator: true);
     await _pushNotificationService.detachSession();
     await _apiClient.deleteMyAccount(auth.accessToken);
     await _sessionStore.clear();
@@ -435,6 +436,26 @@ class _AuthGateState extends State<AuthGate> {
       _pendingAppleIdentityToken = null;
       _message = null;
     });
+    navigator.popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _logout() async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    await _pushNotificationService.detachSession();
+    await _sessionStore.clear();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _auth = null;
+      _initialHomeData = null;
+      _pendingKakaoAccessToken = null;
+      _pendingAppleIdentityToken = null;
+      _message = null;
+    });
+    navigator.popUntil((route) => route.isFirst);
   }
 
   Future<void> _run(Future<void> Function() task) async {
@@ -478,21 +499,7 @@ class _AuthGateState extends State<AuthGate> {
         initialParkingDashboard: initialHomeData?.parkingDashboard,
         onUpdateProfile: _updateProfile,
         onDeleteAccount: _deleteAccount,
-        onLogout: () async {
-          await _pushNotificationService.detachSession();
-          await _sessionStore.clear();
-
-          if (!mounted) {
-            return;
-          }
-
-          setState(() {
-            _auth = null;
-            _initialHomeData = null;
-            _pendingKakaoAccessToken = null;
-            _message = null;
-          });
-        },
+        onLogout: _logout,
       );
     }
 

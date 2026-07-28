@@ -211,10 +211,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await widget.onDeleteAccount();
 
       if (mounted) {
-        final navigator = Navigator.of(context);
-        if (navigator.canPop()) {
-          navigator.pop();
-        }
+        Navigator.of(
+          context,
+          rootNavigator: true,
+        ).popUntil((route) => route.isFirst);
       }
     } catch (error) {
       if (mounted) {

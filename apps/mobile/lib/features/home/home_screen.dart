@@ -571,13 +571,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
-        leading: _HomeNotificationButton(
-          sessionToken: widget.sessionToken,
-          family: selectedFamily!,
-          currentUserId: widget.user.id,
-          refreshToken: _notificationRefreshToken,
-          onOpenParkingTab: _openParkingTab,
-        ),
+        leading: selectedFamily == null
+            ? null
+            : _HomeNotificationButton(
+                sessionToken: widget.sessionToken,
+                family: selectedFamily,
+                currentUserId: widget.user.id,
+                refreshToken: _notificationRefreshToken,
+                onOpenParkingTab: _openParkingTab,
+              ),
         middle: _HomeTitle(
           family: selectedFamily,
           canSwitch: _families.length > 1,
