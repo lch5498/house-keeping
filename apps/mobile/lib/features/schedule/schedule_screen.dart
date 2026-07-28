@@ -2410,6 +2410,11 @@ class _ScheduleDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isAnniversarySchedule = schedule.anniversaryId != null;
     final canModifySchedule = canManage && !isAnniversarySchedule;
+    final allDayEndsOn = _dateOnly(
+      schedule.endsAt,
+    ).subtract(const Duration(days: 1));
+    final showsAllDayRange =
+        schedule.isAllDay && allDayEndsOn.isAfter(_dateOnly(schedule.startsAt));
 
     return CupertinoPageScaffold(
       backgroundColor: AppColors.darkBackground,
@@ -2522,11 +2527,24 @@ class _ScheduleDetailScreen extends StatelessWidget {
                   ],
                   _DetailDivider(),
                   if (schedule.isAllDay) ...[
-                    _DetailRow(
-                      icon: CupertinoIcons.calendar,
-                      label: '날짜',
-                      value: _dayLabel(schedule.startsAt),
-                    ),
+                    if (showsAllDayRange) ...[
+                      _DetailRow(
+                        icon: CupertinoIcons.calendar,
+                        label: 'From',
+                        value: _dayLabel(schedule.startsAt),
+                      ),
+                      _DetailDivider(),
+                      _DetailRow(
+                        icon: CupertinoIcons.calendar,
+                        label: 'To',
+                        value: _dayLabel(allDayEndsOn),
+                      ),
+                    ] else
+                      _DetailRow(
+                        icon: CupertinoIcons.calendar,
+                        label: '날짜',
+                        value: _dayLabel(schedule.startsAt),
+                      ),
                     _DetailDivider(),
                     _DetailSwitchRow(label: '종일', value: true),
                   ] else ...[
@@ -2824,7 +2842,10 @@ class _ScheduleFormScreenState extends State<_ScheduleFormScreen> {
     _isAllDay = schedule?.isAllDay ?? false;
     if (_isAllDay) {
       _startsAt = _dateOnly(_startsAt);
-      _endsAt = _startsAt.add(const Duration(days: 1));
+      _endsAt = _dateOnly(_endsAt);
+      if (!_endsAt.isAfter(_startsAt)) {
+        _endsAt = _startsAt.add(const Duration(days: 1));
+      }
     }
     _vehicleBoardingAt = schedule?.vehicleBoardingAt;
     _vehicleDropoffAt = schedule?.vehicleDropoffAt;
@@ -2956,12 +2977,46 @@ class _ScheduleFormScreenState extends State<_ScheduleFormScreen> {
     });
   }
 
+  Future<void> _pickAllDayDate({required bool isStart}) async {
+    final initial = isStart
+        ? _startsAt
+        : _endsAt.subtract(const Duration(days: 1));
+    final picked = await _showDatePicker(initial);
+
+    if (picked == null) {
+      return;
+    }
+
+    final selectedDate = _dateOnly(picked);
+    setState(() {
+      if (isStart) {
+        final duration = _endsAt.difference(_startsAt);
+        _startsAt = selectedDate;
+        _endsAt = selectedDate.add(
+          duration.inDays < 1 ? const Duration(days: 1) : duration,
+        );
+        return;
+      }
+
+      if (selectedDate.isBefore(_startsAt)) {
+        _message = '종료 날짜는 시작 날짜와 같거나 이후여야 합니다.';
+        return;
+      }
+
+      _message = null;
+      _endsAt = selectedDate.add(const Duration(days: 1));
+    });
+  }
+
   void _setAllDay(bool value) {
     setState(() {
       _isAllDay = value;
       if (value) {
         _startsAt = _dateOnly(_startsAt);
-        _endsAt = _startsAt.add(const Duration(days: 1));
+        _endsAt = _dateOnly(_endsAt);
+        if (!_endsAt.isAfter(_startsAt)) {
+          _endsAt = _startsAt.add(const Duration(days: 1));
+        }
       } else {
         _endsAt = _startsAt.add(const Duration(hours: 1));
       }
@@ -2990,6 +3045,18 @@ class _ScheduleFormScreenState extends State<_ScheduleFormScreen> {
       context: context,
       builder: (popupContext) => _DateTimeInputSheet(
         initial: initial,
+        onCancel: () => Navigator.of(popupContext).pop(),
+        onDone: (value) => Navigator.of(popupContext).pop(value),
+      ),
+    );
+  }
+
+  Future<DateTime?> _showDatePicker(DateTime initial) async {
+    return showCupertinoModalPopup<DateTime>(
+      context: context,
+      builder: (popupContext) => _DateTimeInputSheet(
+        initial: initial,
+        showTime: false,
         onCancel: () => Navigator.of(popupContext).pop(),
         onDone: (value) => Navigator.of(popupContext).pop(value),
       ),
@@ -3117,13 +3184,19 @@ class _ScheduleFormScreenState extends State<_ScheduleFormScreen> {
               children: [
                 _ScheduleAllDayRow(value: _isAllDay, onChanged: _setAllDay),
                 _FormDivider(),
-                if (_isAllDay)
+                if (_isAllDay) ...[
                   _PickerRow(
-                    label: '날짜',
+                    label: '시작 날짜',
                     value: _dayLabel(_startsAt),
-                    onPressed: null,
-                  )
-                else ...[
+                    onPressed: () => _pickAllDayDate(isStart: true),
+                  ),
+                  _FormDivider(),
+                  _PickerRow(
+                    label: '종료 날짜',
+                    value: _dayLabel(_endsAt.subtract(const Duration(days: 1))),
+                    onPressed: () => _pickAllDayDate(isStart: false),
+                  ),
+                ] else ...[
                   _PickerRow(
                     label: '시작 시각',
                     value: _dateTimeLabel(_startsAt),
@@ -3360,11 +3433,13 @@ class _OptionalTimeRow extends StatelessWidget {
 class _DateTimeInputSheet extends StatefulWidget {
   const _DateTimeInputSheet({
     required this.initial,
+    this.showTime = true,
     required this.onCancel,
     required this.onDone,
   });
 
   final DateTime initial;
+  final bool showTime;
   final VoidCallback onCancel;
   final ValueChanged<DateTime> onDone;
 
@@ -3411,8 +3486,8 @@ class _DateTimeInputSheetState extends State<_DateTimeInputSheet> {
     final year = int.tryParse(_yearController.text);
     final month = int.tryParse(_monthController.text);
     final day = int.tryParse(_dayController.text);
-    final hour = int.tryParse(_hourController.text);
-    final minute = int.tryParse(_minuteController.text);
+    final hour = widget.showTime ? int.tryParse(_hourController.text) : 12;
+    final minute = widget.showTime ? int.tryParse(_minuteController.text) : 0;
 
     if (year == null ||
         month == null ||
@@ -3428,12 +3503,12 @@ class _DateTimeInputSheetState extends State<_DateTimeInputSheet> {
       return;
     }
 
-    if (hour < 1 || hour > 12) {
+    if (widget.showTime && (hour < 1 || hour > 12)) {
       setState(() => _message = '시는 1부터 12까지 입력해 주세요.');
       return;
     }
 
-    if (minute < 0 || minute > 59) {
+    if (widget.showTime && (minute < 0 || minute > 59)) {
       setState(() => _message = '분은 0부터 59까지 입력해 주세요.');
       return;
     }
@@ -3441,7 +3516,13 @@ class _DateTimeInputSheetState extends State<_DateTimeInputSheet> {
     final convertedHour = _isPm
         ? (hour == 12 ? 12 : hour + 12)
         : (hour == 12 ? 0 : hour);
-    final value = DateTime(year, month, day, convertedHour, minute);
+    final value = DateTime(
+      year,
+      month,
+      day,
+      widget.showTime ? convertedHour : 0,
+      minute,
+    );
     if (value.year != year || value.month != month || value.day != day) {
       setState(() => _message = '존재하는 날짜를 입력해 주세요.');
       return;
@@ -3514,49 +3595,51 @@ class _DateTimeInputSheetState extends State<_DateTimeInputSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  CupertinoSlidingSegmentedControl<bool>(
-                    groupValue: _isPm,
-                    children: const {
-                      false: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('오전'),
-                      ),
-                      true: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('오후'),
-                      ),
-                    },
-                    onValueChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _isPm = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _NumberInputField(
-                      controller: _hourController,
-                      placeholder: '3',
-                      suffix: '시',
-                      maxLength: 2,
+              if (widget.showTime) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    CupertinoSlidingSegmentedControl<bool>(
+                      groupValue: _isPm,
+                      children: const {
+                        false: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('오전'),
+                        ),
+                        true: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('오후'),
+                        ),
+                      },
+                      onValueChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _isPm = value;
+                          });
+                        }
+                      },
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _NumberInputField(
-                      controller: _minuteController,
-                      placeholder: '30',
-                      suffix: '분',
-                      maxLength: 2,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _NumberInputField(
+                        controller: _hourController,
+                        placeholder: '3',
+                        suffix: '시',
+                        maxLength: 2,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _NumberInputField(
+                        controller: _minuteController,
+                        placeholder: '30',
+                        suffix: '분',
+                        maxLength: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (_message != null) ...[
                 const SizedBox(height: 12),
                 Text(
