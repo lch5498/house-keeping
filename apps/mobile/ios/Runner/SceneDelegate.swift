@@ -45,6 +45,7 @@ class SceneDelegate: FlutterSceneDelegate {
     appDelegate.configureShareChannel(controller: controller)
     appDelegate.configurePhoneChannel(controller: controller)
     appDelegate.configureContactChannel(controller: controller)
+    appDelegate.configureHomeWidgetChannel(controller: controller)
 
     appDelegate.deepLinkChannel = FlutterMethodChannel(
       name: "checky/deep_links",

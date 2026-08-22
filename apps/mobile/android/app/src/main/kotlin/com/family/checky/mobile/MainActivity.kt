@@ -81,6 +81,40 @@ class MainActivity : FlutterActivity() {
             }
         }
 
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "checky/home_widget"
+        ).setMethodCallHandler { call, result ->
+            if (call.method != "update") {
+                result.notImplemented()
+                return@setMethodCallHandler
+            }
+
+            val arguments = call.arguments as? Map<*, *> ?: emptyMap<Any, Any>()
+            val editor = getSharedPreferences("checky.home_widget", Context.MODE_PRIVATE).edit()
+            val schedule = arguments["schedule"] as? Map<*, *>
+            val items = schedule?.get("items") as? List<*> ?: emptyList<Any>()
+            editor.putString("schedule.title", schedule?.get("title") as? String ?: "체키 오늘 일정")
+            editor.putString("schedule.weekday", schedule?.get("weekday") as? String ?: "오늘")
+            editor.putString("schedule.day", schedule?.get("day") as? String ?: "")
+            editor.putString("schedule.fullDate", schedule?.get("fullDate") as? String ?: "오늘")
+            editor.putInt("schedule.itemCount", items.size.coerceAtMost(5))
+            editor.putInt(
+                "schedule.moreCount",
+                (schedule?.get("moreCount") as? Number)?.toInt() ?: 0,
+            )
+            repeat(5) { index ->
+                val item = items.getOrNull(index) as? Map<*, *>
+                editor.putString("schedule.item.$index.startsAt", item?.get("startsAt") as? String ?: "")
+                editor.putString("schedule.item.$index.endsAt", item?.get("endsAt") as? String ?: "")
+                editor.putString("schedule.item.$index.title", item?.get("title") as? String ?: "")
+                editor.putString("schedule.item.$index.memberName", item?.get("memberName") as? String ?: "")
+            }
+            editor.apply()
+            CheckyHomeWidgetProvider.updateAll(this)
+            result.success(null)
+        }
+
         deepLinkChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "checky/deep_links"

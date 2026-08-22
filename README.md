@@ -3,6 +3,7 @@
 그룹 내 구성원과 공유해서 사용하는 Checky 앱입니다. Flutter 앱은 iOS와 Android에서 하단 탭으로 홈, 일정, 주차, 스크랩, 여행을 구분합니다.
 
 - 홈: 오늘 일정, 현재 주차 위치, 출발 7일 전부터의 여행 체크리스트 완료율, 최근 스크랩 브리핑
+- 홈 위젯: Android와 iOS에서 오늘 일정을 캘린더형 목록으로 표시합니다. 2×2/작은 위젯은 최대 2개, 넓은 위젯은 최대 5개를 표시하고 남은 일정 수를 안내합니다.
 - 일정: 종일 옵션을 포함한 그룹 구성원별 일정·반복 일정·기념일 관리, 여행 일정 필터 캘린더, 다가오는 공휴일·연휴·징검다리 조회
 - 주차: 차량과 주차 위치 관리
 - 그룹 활동: 최근 7일간의 일정·주차·스크랩·여행 활동을 유형별로 조회
@@ -389,6 +390,15 @@ apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
 - 앱 이름: `체키`
 - 카카오 redirect scheme: `kakao{KAKAO_NATIVE_APP_KEY}`
 - Android manifest는 `--dart-define=KAKAO_NATIVE_APP_KEY=...` 값을 읽어 카카오 콜백 scheme에 반영합니다.
+
+### 홈 위젯 iOS 서명 설정
+
+iOS 홈 위젯은 앱과 `group.com.family.checky.mobile` App Group을 공유해 오늘 일정을 표시합니다. 작은 위젯은 최대 2개, 넓은 위젯은 최대 5개를 표시하며 추가 일정은 `더 보기 +N개`로 안내합니다. 실제 기기·TestFlight·App Store 빌드 전 Apple Developer의 Identifiers에서 아래 두 App ID에 **App Groups** capability를 켜고 같은 그룹을 연결해야 합니다.
+
+- `com.family.checky.mobile`
+- `com.family.checky.mobile.CheckyHomeWidget`
+
+연결 후 Xcode에서 `Runner`와 `CheckyHomeWidget` target의 Signing & Capabilities에 `group.com.family.checky.mobile`가 보이는지 확인합니다. iOS와 Android 모두 오늘 일정만 간략하게 표시합니다.
 
 ## 전체 프로젝트 설치
 

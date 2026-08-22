@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="3dp"
+    android:background="@drawable/checky_home_widget_event_background"
+    android:gravity="center_vertical"
+    android:minHeight="23dp"
+    android:orientation="horizontal"
+    android:padding="4dp">
+
+    <View
+        android:layout_width="3dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/checky_home_widget_event_accent" />
+
+    <TextView
+        android:id="@+id/widget_item_time"
+        android:layout_width="34dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="#FF866552"
+        android:textSize="9sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_item_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="#FF4B3328"
+        android:textSize="10sp"
+        android:textStyle="bold" />
+</LinearLayout>

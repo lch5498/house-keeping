@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/api_client.dart';
+import '../../core/home_widget_service.dart';
 import '../../core/theme_preference.dart';
 import '../../design_system/app_colors.dart';
 import '../family/family_screen.dart';
@@ -917,6 +918,7 @@ class _HomeDashboardTabState extends State<_HomeDashboardTab> {
     } else {
       _loadHomeSecondaryBriefing();
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateHomeWidget());
   }
 
   @override
@@ -983,6 +985,7 @@ class _HomeDashboardTabState extends State<_HomeDashboardTab> {
         _recentScrapActivities = recentScrapActivities;
         _travelDashboard = travel;
       });
+      _updateHomeWidget();
     } catch (error) {
       if (mounted && loadToken == _briefingLoadToken) {
         setState(() {
@@ -1021,6 +1024,7 @@ class _HomeDashboardTabState extends State<_HomeDashboardTab> {
         _recentScrapActivities = activities;
         _travelDashboard = travel;
       });
+      _updateHomeWidget();
     } catch (_) {
       // The main home briefing remains usable if secondary content fails.
     }
@@ -1106,6 +1110,28 @@ class _HomeDashboardTabState extends State<_HomeDashboardTab> {
 
   void _changeScheduleDate(int dayOffset) {
     _loadScheduleBriefing(_scheduleDate.add(Duration(days: dayOffset)));
+  }
+
+  void _updateHomeWidget() {
+    final now = DateTime.now();
+    final schedules = [...?_scheduleDashboard?.schedules]
+      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+
+    final scheduleItems = schedules
+        .take(5)
+        .map(_homeWidgetScheduleItem)
+        .toList();
+
+    HomeWidgetService.update(
+      schedule: HomeWidgetPageData(
+        title: '체키 오늘 일정',
+        weekday: _homeWidgetWeekday(now),
+        day: now.day.toString(),
+        fullDate: '${now.month}월 ${now.day}일 ${_homeWidgetWeekday(now)}',
+        items: scheduleItems,
+        moreCount: schedules.length - scheduleItems.length,
+      ),
+    );
   }
 
   @override
@@ -1699,6 +1725,30 @@ String _scrapActivityPreviewText(ScrapRecentActivity activity) {
   final linkTitle = activity.linkTitle?.trim();
 
   return linkTitle == null || linkTitle.isEmpty ? firstLine : linkTitle;
+}
+
+HomeWidgetScheduleItem _homeWidgetScheduleItem(AppSchedule schedule) {
+  final startsAt = schedule.isAllDay
+      ? '종일'
+      : _homeWidgetTimeText(schedule.startsAt);
+  final endsAt = schedule.isAllDay ? '' : _homeWidgetTimeText(schedule.endsAt);
+  return HomeWidgetScheduleItem(
+    startsAt: startsAt,
+    endsAt: endsAt,
+    title: schedule.title,
+    memberName: schedule.memberNickname,
+  );
+}
+
+String _homeWidgetTimeText(DateTime start) {
+  final hour = start.hour.toString().padLeft(2, '0');
+  final minute = start.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
+}
+
+String _homeWidgetWeekday(DateTime date) {
+  const labels = <String>['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+  return labels[date.weekday - 1];
 }
 
 class _BriefingSection extends StatelessWidget {

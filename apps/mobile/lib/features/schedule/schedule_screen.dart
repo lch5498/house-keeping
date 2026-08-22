@@ -8,7 +8,7 @@ import '../../shared/member_filter.dart';
 import '../../shared/schedule_section_switcher.dart';
 import '../travel/travel_screen.dart';
 
-enum _CalendarMode { day, week, month }
+enum _CalendarMode { month, week, day }
 
 const _phoneChannel = MethodChannel('checky/phone');
 
@@ -49,7 +49,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   late AppFamily _family;
   ScheduleDashboard? _dashboard;
   TravelDashboard? _travelDashboard;
-  _CalendarMode _mode = _CalendarMode.week;
+  _CalendarMode _mode = _CalendarMode.month;
   DateTime _anchorDate = _dateOnly(DateTime.now());
   final Set<String> _hiddenMemberIds = <String>{};
   bool _isAnniversaryHidden = false;
@@ -1125,17 +1125,17 @@ class _CalendarModeSegment extends StatelessWidget {
       groupValue: mode,
       padding: const EdgeInsets.all(2),
       children: const {
-        _CalendarMode.day: Padding(
+        _CalendarMode.month: Padding(
           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text('일'),
+          child: Text('월'),
         ),
         _CalendarMode.week: Padding(
           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Text('주'),
         ),
-        _CalendarMode.month: Padding(
+        _CalendarMode.day: Padding(
           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text('월'),
+          child: Text('일'),
         ),
       },
       onValueChanged: (value) {
