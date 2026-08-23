@@ -1116,10 +1116,19 @@ class _HomeDashboardTabState extends State<_HomeDashboardTab> {
     final now = DateTime.now();
     final schedules = [...?_scheduleDashboard?.schedules]
       ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    final memberColors = _homeMemberColors(
+      _scheduleDashboard?.members ?? const [],
+    );
 
     final scheduleItems = schedules
         .take(5)
-        .map(_homeWidgetScheduleItem)
+        .map(
+          (schedule) => _homeWidgetScheduleItem(
+            schedule,
+            memberColor:
+                memberColors[schedule.familyMemberId] ?? MemberFilterColor.gray,
+          ),
+        )
         .toList();
 
     HomeWidgetService.update(
@@ -1727,7 +1736,10 @@ String _scrapActivityPreviewText(ScrapRecentActivity activity) {
   return linkTitle == null || linkTitle.isEmpty ? firstLine : linkTitle;
 }
 
-HomeWidgetScheduleItem _homeWidgetScheduleItem(AppSchedule schedule) {
+HomeWidgetScheduleItem _homeWidgetScheduleItem(
+  AppSchedule schedule, {
+  required MemberFilterColor memberColor,
+}) {
   final startsAt = schedule.isAllDay
       ? '종일'
       : _homeWidgetTimeText(schedule.startsAt);
@@ -1737,6 +1749,7 @@ HomeWidgetScheduleItem _homeWidgetScheduleItem(AppSchedule schedule) {
     endsAt: endsAt,
     title: schedule.title,
     memberName: schedule.memberNickname,
+    memberColor: memberColor.name,
   );
 }
 

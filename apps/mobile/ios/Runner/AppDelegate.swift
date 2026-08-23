@@ -131,6 +131,7 @@ import WidgetKit
         defaults.set(item?["endsAt"] as? String ?? "", forKey: "schedule.item.\(index).endsAt")
         defaults.set(item?["title"] as? String ?? "", forKey: "schedule.item.\(index).title")
         defaults.set(item?["memberName"] as? String ?? "", forKey: "schedule.item.\(index).memberName")
+        defaults.set(item?["memberColor"] as? String ?? "gray", forKey: "schedule.item.\(index).memberColor")
       }
 
       WidgetCenter.shared.reloadAllTimelines()

@@ -10,6 +10,7 @@ struct CheckyHomeWidgetScheduleItem: Identifiable {
   let endsAt: String
   let title: String
   let memberName: String
+  let memberColor: String
 }
 
 struct CheckyHomeWidgetEntry: TimelineEntry {
@@ -47,7 +48,8 @@ struct CheckyHomeWidgetProvider: TimelineProvider {
         startsAt: defaults.string(forKey: "schedule.item.\(index).startsAt") ?? "종일",
         endsAt: defaults.string(forKey: "schedule.item.\(index).endsAt") ?? "",
         title: title,
-        memberName: defaults.string(forKey: "schedule.item.\(index).memberName") ?? ""
+        memberName: defaults.string(forKey: "schedule.item.\(index).memberName") ?? "",
+        memberColor: defaults.string(forKey: "schedule.item.\(index).memberColor") ?? "gray"
       )
     }
     return CheckyHomeWidgetEntry(
@@ -69,8 +71,8 @@ struct CheckyHomeWidgetProvider: TimelineProvider {
       day: "20",
       fullDate: "8월 20일 목요일",
       items: [
-        CheckyHomeWidgetScheduleItem(id: 0, startsAt: "09:00", endsAt: "09:50", title: "가족 일정", memberName: "엄마"),
-        CheckyHomeWidgetScheduleItem(id: 1, startsAt: "14:00", endsAt: "15:00", title: "약속", memberName: "아빠"),
+        CheckyHomeWidgetScheduleItem(id: 0, startsAt: "09:00", endsAt: "09:50", title: "가족 일정", memberName: "엄마", memberColor: "blue"),
+        CheckyHomeWidgetScheduleItem(id: 1, startsAt: "14:00", endsAt: "15:00", title: "약속", memberName: "아빠", memberColor: "orange"),
       ],
       moreCount: 1
     )
@@ -96,11 +98,33 @@ struct CheckyHomeWidgetView: View {
     return "\(item.startsAt) - \(item.endsAt)"
   }
 
+  private func memberColor(for item: CheckyHomeWidgetScheduleItem) -> Color {
+    switch item.memberColor {
+    case "red": return Color(red: 0.90, green: 0.22, blue: 0.21)
+    case "blue": return Color(red: 0.12, green: 0.53, blue: 0.90)
+    case "green": return Color(red: 0.26, green: 0.63, blue: 0.28)
+    case "orange": return Color(red: 0.98, green: 0.55, blue: 0.00)
+    case "purple": return Color(red: 0.56, green: 0.14, blue: 0.67)
+    case "pink": return Color(red: 0.85, green: 0.11, blue: 0.38)
+    case "teal": return Color(red: 0.00, green: 0.54, blue: 0.48)
+    case "yellow": return Color(red: 0.99, green: 0.85, blue: 0.21)
+    case "indigo": return Color(red: 0.22, green: 0.29, blue: 0.67)
+    case "mint": return Color(red: 0.00, green: 0.67, blue: 0.76)
+    default: return Color(red: 0.42, green: 0.45, blue: 0.50)
+    }
+  }
+
+  private func memberForegroundColor(for item: CheckyHomeWidgetScheduleItem) -> Color {
+    item.memberColor == "yellow"
+      ? Color(red: 0.24, green: 0.18, blue: 0.00)
+      : .white
+  }
+
   @ViewBuilder
   private func eventCard(_ item: CheckyHomeWidgetScheduleItem) -> some View {
     HStack(spacing: isSmall ? 4 : 6) {
       RoundedRectangle(cornerRadius: 3, style: .continuous)
-        .fill(Color(red: 0.76, green: 0.54, blue: 0.40))
+        .fill(memberColor(for: item))
         .frame(width: 3)
 
       if isSmall {
@@ -123,9 +147,13 @@ struct CheckyHomeWidgetView: View {
             Spacer(minLength: 0)
             if !item.memberName.isEmpty {
               Text(item.memberName)
-                .font(.system(size: 8, weight: .medium))
-                .foregroundStyle(Color(red: 0.53, green: 0.38, blue: 0.31))
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(memberForegroundColor(for: item))
                 .lineLimit(1)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+                .background(memberColor(for: item))
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
             }
           }
           Text(timeText(for: item))
@@ -161,7 +189,7 @@ struct CheckyHomeWidgetView: View {
       Text("오늘 등록된 일정이 없습니다.")
         .font(.system(size: isSmall ? 8 : 10))
         .foregroundStyle(.secondary)
-        .frame(maxHeight: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, alignment: .leading)
     } else {
       ForEach(displayedItems) { item in
         eventCard(item)

@@ -36,18 +36,21 @@ class HomeWidgetScheduleItem {
     required this.endsAt,
     required this.title,
     required this.memberName,
+    required this.memberColor,
   });
 
   final String startsAt;
   final String endsAt;
   final String title;
   final String memberName;
+  final String memberColor;
 
   Map<String, String> toMap() => {
     'startsAt': startsAt,
     'endsAt': endsAt,
     'title': title,
     'memberName': memberName,
+    'memberColor': memberColor,
   };
 }
 

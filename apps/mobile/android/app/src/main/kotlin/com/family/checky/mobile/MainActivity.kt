@@ -109,6 +109,7 @@ class MainActivity : FlutterActivity() {
                 editor.putString("schedule.item.$index.endsAt", item?.get("endsAt") as? String ?: "")
                 editor.putString("schedule.item.$index.title", item?.get("title") as? String ?: "")
                 editor.putString("schedule.item.$index.memberName", item?.get("memberName") as? String ?: "")
+                editor.putString("schedule.item.$index.memberColor", item?.get("memberColor") as? String ?: "gray")
             }
             editor.apply()
             CheckyHomeWidgetProvider.updateAll(this)
